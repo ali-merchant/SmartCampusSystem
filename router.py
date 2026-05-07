@@ -2,7 +2,7 @@ from models.request import Request
 from models.response import ROUTER_OUTPUT_TEMPLATE
 
 
-def route_request(request: Request) -> dict:
+def route_request(request: Request, route_requested: bool = False) -> dict:
     output = ROUTER_OUTPUT_TEMPLATE.copy()
     output["request_id"] = request.request_id
 
@@ -20,7 +20,7 @@ def route_request(request: Request) -> dict:
         output["selected_pipeline"] = ["Logic_KB", "CSP"]
         output["needs_logic"] = True
         output["needs_csp"] = True
-        output["needs_search"] = bool(request.destination)
+        output["needs_search"] = bool(request.destination) or route_requested
         if output["needs_search"]:
             output["selected_pipeline"].append("Search")
 
@@ -29,7 +29,7 @@ def route_request(request: Request) -> dict:
         output["needs_ann"] = True
         output["needs_logic"] = True
         output["needs_csp"] = True
-        output["needs_search"] = bool(request.destination)
+        output["needs_search"] = bool(request.destination) or route_requested
         if output["needs_search"]:
             output["selected_pipeline"].append("Search")
 

@@ -42,10 +42,10 @@ class Request:
     severity: Optional[int] = None
     time_sensitivity: Optional[int] = None
     crowd_level: Optional[int] = None
-    group_id: Optional[str] = None
+    group_id: Optional[str] = ""
     query: Optional[str] = None
-    eligibility_claim: Optional[bool] = None
-    description_note: Optional[str] = None
+    eligibility_claim: bool = False
+    description_note: Optional[str] = ""
 
     _normalized_role: str = field(init=False, repr=False)
 
