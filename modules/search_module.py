@@ -7,6 +7,8 @@ from models.response import SEARCH_OUTPUT_TEMPLATE
 
 
 def estimate_distance(source: Optional[str], destination: Optional[str]) -> int:
+    # Estimate Manhattan distance using coordinates for heuristic use.
+    # Returns 0 when inputs are missing or unknown.
     if not source or not destination:
         return 0
     if source not in COORDS or destination not in COORDS:
@@ -17,6 +19,8 @@ def estimate_distance(source: Optional[str], destination: Optional[str]) -> int:
 
 
 def select_algorithm(graph_type: str, heuristic_available: bool) -> str:
+    # Select the operational search algorithm based on graph properties.
+    # Follows the project policy for unweighted and weighted graphs.
     if graph_type == "unweighted":
         return "BFS"
     if heuristic_available:
@@ -25,6 +29,8 @@ def select_algorithm(graph_type: str, heuristic_available: bool) -> str:
 
 
 def reconstruct_path(came_from: dict, start: str, goal: str) -> list:
+    # Reconstruct a path from a came_from map.
+    # Returns an empty list when no path exists.
     if goal not in came_from:
         return []
     path = [goal]
@@ -37,6 +43,8 @@ def reconstruct_path(came_from: dict, start: str, goal: str) -> list:
 
 
 def bfs(graph: dict, start: str, goal: str) -> tuple[list, int]:
+    # Run BFS for unweighted shortest path search.
+    # Returns the path and hop-count cost.
     queue = deque([start])
     came_from = {start: None}
 
@@ -55,6 +63,8 @@ def bfs(graph: dict, start: str, goal: str) -> tuple[list, int]:
 
 
 def ucs(graph: dict, start: str, goal: str) -> tuple[list, int]:
+    # Run Uniform Cost Search on a weighted graph.
+    # Returns the lowest-cost path and total cost.
     frontier = [(0, start)]
     came_from = {start: None}
     cost_so_far = {start: 0}
@@ -76,6 +86,8 @@ def ucs(graph: dict, start: str, goal: str) -> tuple[list, int]:
 
 
 def a_star(graph: dict, start: str, goal: str) -> tuple[list, int]:
+    # Run A* search using Manhattan distance as a heuristic.
+    # Returns the lowest-cost path and total cost.
     frontier = [(0, start)]
     came_from = {start: None}
     cost_so_far = {start: 0}
@@ -102,9 +114,13 @@ def find_route(
     destination: Optional[str],
     graph_type: Optional[str] = None,
 ) -> dict:
+    # Compute a route using the operational algorithm policy.
+    # Returns a standard search output object.
     output = SEARCH_OUTPUT_TEMPLATE.copy()
 
     if not source or not destination:
+        return output
+    if source not in CAMPUS_GRAPH or destination not in CAMPUS_GRAPH:
         return output
 
     graph_type = graph_type or GRAPH_TYPE

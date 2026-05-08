@@ -50,6 +50,8 @@ class Request:
     _normalized_role: str = field(init=False, repr=False)
 
     def __post_init__(self):
+        # Validate all required fields after initialization.
+        # Ensures the request object is consistent and usable.
         self._validate_request_id()
         self._validate_name()
         self._validate_role()
@@ -57,14 +59,20 @@ class Request:
         self._validate_conditionals()
 
     def _validate_request_id(self):
+        # Ensure request_id is present and formatted as a string.
+        # Reject missing or invalid identifiers.
         if not self.request_id or not isinstance(self.request_id, str):
             raise ValueError("request_id is required")
 
     def _validate_name(self):
+        # Validate that the name is present and within length limits.
+        # Protects against empty or overly long names.
         if not self.name or len(self.name) >= 30:
             raise ValueError("Name must be less than 30 characters")
 
     def _validate_role(self):
+        # Validate role against allowed options and normalize casing.
+        # Stores the normalized role for downstream use.
         allowed = ["student", "instructor", "staff"]
         if self.role is None or self.role.lower() not in allowed:
             raise ValueError(f"Invalid role. Must be one of: {allowed}")
@@ -72,25 +80,29 @@ class Request:
         self._normalized_role = self.role
 
     def _validate_request_type(self):
+        # Validate request_type against supported request types.
+        # Prevents unsupported pipeline selection.
         if self.request_type not in REQUEST_TYPES:
             raise ValueError(f"Invalid request_type. Must be one of: {sorted(REQUEST_TYPES)}")
 
     def _validate_conditionals(self):
-        rt = self.request_type
+        # Validate required fields that depend on request_type.
+        # Ensures each request has the necessary inputs for its pipeline.
+        request_type = self.request_type
 
-        if rt == "Navigation_Only":
+        if request_type == "Navigation_Only":
             if not self.current_location or not self.destination:
                 raise ValueError("Navigation_Only requires current_location and destination")
 
-        elif rt == "Eligibility_Check":
+        elif request_type == "Eligibility_Check":
             if not self.query:
                 raise ValueError("Eligibility_Check requires query")
 
-        elif rt == "Booking_or_Scheduling":
+        elif request_type == "Booking_or_Scheduling":
             if not self.category or self.preferred_slot is None:
                 raise ValueError("Booking_or_Scheduling requires category and preferred_slot")
 
-        elif rt == "Urgent_Service_Request":
+        elif request_type == "Urgent_Service_Request":
             required = [
                 self.category,
                 self.current_location,
@@ -101,7 +113,7 @@ class Request:
             if any(x is None for x in required):
                 raise ValueError("Urgent_Service_Request missing required fields")
 
-        elif rt == "Full_Service_Request":
+        elif request_type == "Full_Service_Request":
             required = [
                 self.category,
                 self.current_location,

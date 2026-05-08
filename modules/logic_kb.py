@@ -13,6 +13,8 @@ ALLOWED_ROLES_BY_CATEGORY = {
 
 
 def check_eligibility(request, query: Optional[str]) -> dict:
+    # Evaluate eligibility using simple role and category rules.
+    # Returns a standardized logic output object.
     output = LOGIC_OUTPUT_TEMPLATE.copy()
 
     if request.request_type == "Eligibility_Check":

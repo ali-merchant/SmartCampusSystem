@@ -12,9 +12,20 @@ from utils import generate_request_id
 
 
 def process_raw_request(raw: dict) -> Tuple[dict, Optional[dict]]:
+    # Normalize and validate raw input, returning a final response.
+    # Wrap preprocessing errors into a standard rejection response.
     try:
         request, module_inputs = preprocess_request(raw)
     except ValueError as exc:
+        request_id = raw.get("request_id") or generate_request_id()
+        response = build_final_response(
+            request_id=request_id,
+            decision="rejected",
+            eligibility={"allowed": False, "explanation": str(exc)},
+            message=f"Your request has been rejected because {exc}.",
+        )
+        return response, None
+    except Exception as exc:
         request_id = raw.get("request_id") or generate_request_id()
         response = build_final_response(
             request_id=request_id,
@@ -28,6 +39,8 @@ def process_raw_request(raw: dict) -> Tuple[dict, Optional[dict]]:
 
 
 def process_request(request, module_inputs: dict) -> Tuple[dict, dict]:
+    # Execute the routed module pipeline for a validated request.
+    # Build a final response from the collected module outputs.
     router_output = route_request(request, module_inputs.get("route_requested", False))
 
     ann_output = None
@@ -37,27 +50,39 @@ def process_request(request, module_inputs: dict) -> Tuple[dict, dict]:
     rejection_reason = ""
 
     if router_output.get("needs_ann"):
-        ann_output = predict_priority(request, module_inputs.get("ann_features", {}))
+        try:
+            ann_output = predict_priority(request, module_inputs.get("ann_features", {}))
+        except Exception as exc:
+            rejection_reason = f"priority module error: {exc}"
 
-    if router_output.get("needs_logic"):
-        logic_output = check_eligibility(request, module_inputs.get("logic_query"))
-        if request.request_type != "Eligibility_Check":
-            if not logic_output.get("allowed"):
-                rejection_reason = logic_output.get("explanation", "not eligible")
+    if not rejection_reason and router_output.get("needs_logic"):
+        try:
+            logic_output = check_eligibility(request, module_inputs.get("logic_query"))
+            if request.request_type != "Eligibility_Check":
+                if not logic_output.get("allowed"):
+                    rejection_reason = logic_output.get("explanation", "not eligible")
+        except Exception as exc:
+            rejection_reason = f"eligibility module error: {exc}"
 
     if not rejection_reason and router_output.get("needs_csp"):
-        csp_output = assign_slot(request, module_inputs.get("csp", {}))
-        if csp_output.get("decision") != "accepted":
-            rejection_reason = csp_output.get("notes", "no feasible assignment")
+        try:
+            csp_output = assign_slot(request, module_inputs.get("csp", {}))
+            if csp_output.get("decision") != "accepted":
+                rejection_reason = csp_output.get("notes", "no feasible assignment")
+        except Exception as exc:
+            rejection_reason = f"scheduling module error: {exc}"
 
     if not rejection_reason and router_output.get("needs_search"):
-        source = request.current_location
-        destination = request.destination
-        if not destination and csp_output:
-            destination = csp_output.get("destination")
-        search_output = find_route(source, destination)
-        if not search_output.get("path"):
-            rejection_reason = "no valid route found"
+        try:
+            source = request.current_location
+            destination = request.destination
+            if not destination and csp_output:
+                destination = csp_output.get("destination")
+            search_output = find_route(source, destination)
+            if not search_output.get("path"):
+                rejection_reason = "no valid route found"
+        except Exception as exc:
+            rejection_reason = f"routing module error: {exc}"
 
     response = compose_response(
         request,

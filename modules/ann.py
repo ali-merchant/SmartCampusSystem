@@ -27,8 +27,10 @@ REQUEST_TYPE_ENCODING = {
 
 
 def build_feature_vector(request, ann_inputs: dict) -> list:
+    # Encode request fields into a numeric feature vector for ANN use.
+    # Keeps the feature order aligned with the project specification.
     role_value = ROLE_ENCODING.get(request.role, 0)
-    req_type_value = REQUEST_TYPE_ENCODING.get(request.category, 0)
+    request_type_value = REQUEST_TYPE_ENCODING.get(request.category, 0)
     severity = ann_inputs.get("severity", 0) or 0
     time_sensitivity = ann_inputs.get("time_sensitivity", 0) or 0
     crowd_level = ann_inputs.get("crowd_level", 0) or 0
@@ -37,7 +39,7 @@ def build_feature_vector(request, ann_inputs: dict) -> list:
 
     return [
         role_value,
-        req_type_value,
+        request_type_value,
         severity,
         time_sensitivity,
         crowd_level,
@@ -47,6 +49,8 @@ def build_feature_vector(request, ann_inputs: dict) -> list:
 
 
 def predict_priority(request, ann_inputs: dict) -> dict:
+    # Predict binary and multiclass priority using a simple scoring heuristic.
+    # Returns a standard priority output object.
     features = build_feature_vector(request, ann_inputs)
     severity = features[2]
     time_sensitivity = features[3]

@@ -56,6 +56,8 @@ def build_final_response(
     route: Optional[dict] = None,
     message: str = "",
 ) -> dict:
+    # Build the final response using the standard response template.
+    # Inserts only the provided sections for this request.
     response = FINAL_RESPONSE_TEMPLATE.copy()
     response["request_id"] = request_id
     response["decision"] = decision

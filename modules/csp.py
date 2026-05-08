@@ -13,6 +13,8 @@ AVAILABLE_SLOTS = [1, 2, 3, 4]
 
 
 def assign_slot(request, csp_inputs: dict) -> dict:
+    # Assign a room and time slot based on category and preference.
+    # Returns a standard CSP output with acceptance or rejection.
     output = CSP_OUTPUT_TEMPLATE.copy()
 
     if not request.category:

@@ -3,6 +3,8 @@ from models.response import ROUTER_OUTPUT_TEMPLATE
 
 
 def route_request(request: Request, route_requested: bool = False) -> dict:
+    # Decide the module pipeline for a request based on request_type.
+    # Returns the router control object for downstream processing.
     output = ROUTER_OUTPUT_TEMPLATE.copy()
     output["request_id"] = request.request_id
 

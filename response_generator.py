@@ -10,6 +10,8 @@ def compose_response(
     search_output=None,
     rejection_reason: str = "",
 ) -> dict:
+    # Combine module outputs into a single standard response object.
+    # Honors the router pipeline flags to include only relevant fields.
     decision = resolve_decision(request.request_type, rejection_reason)
 
     priority = ann_output if router_output.get("needs_ann") and ann_output else {}
@@ -37,6 +39,8 @@ def compose_response(
 
 
 def resolve_decision(request_type: str, rejection_reason: str) -> str:
+    # Decide response decision value based on request type and failures.
+    # Keeps decisions consistent across request categories.
     if rejection_reason:
         return "rejected"
     if request_type == "Navigation_Only":
@@ -47,6 +51,8 @@ def resolve_decision(request_type: str, rejection_reason: str) -> str:
 
 
 def build_eligibility(request, router_output, logic_output, decision: str) -> dict:
+    # Build the eligibility section based on logic results and request type.
+    # Adds explanation text only when appropriate.
     if not router_output.get("needs_logic") or not logic_output:
         return {}
 
@@ -64,6 +70,8 @@ def build_eligibility(request, router_output, logic_output, decision: str) -> di
 
 
 def build_assignment(router_output, csp_output, decision: str) -> dict:
+    # Build assignment details only when scheduling succeeds.
+    # Returns an empty dict for non-CSP requests.
     if decision == "rejected" or not router_output.get("needs_csp"):
         return {}
     if not csp_output:
@@ -75,6 +83,8 @@ def build_assignment(router_output, csp_output, decision: str) -> dict:
 
 
 def build_route(router_output, search_output, decision: str) -> dict:
+    # Build routing details only when search runs successfully.
+    # Returns an empty dict if no route is required or found.
     if decision == "rejected" or not router_output.get("needs_search"):
         return {}
     if not search_output:
@@ -95,6 +105,8 @@ def build_message(
     logic_output,
     rejection_reason: str,
 ) -> str:
+    # Create a user-facing summary message based on outputs and status.
+    # Keep messages concise and aligned with decision type.
     if decision == "rejected":
         reason = rejection_reason or "the request could not be processed"
         return f"Your request has been rejected because {reason}."

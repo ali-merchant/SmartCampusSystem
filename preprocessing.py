@@ -19,6 +19,14 @@ CATEGORY_MAP = {
     "emergency_help": "Emergency_Help",
 }
 
+ALLOWED_CATEGORIES = {
+    "AI_Lab_Support",
+    "Viva_Scheduling",
+    "Access_Request",
+    "Maintenance",
+    "Emergency_Help",
+}
+
 LOCATION_MAP = {
     "hostel": "Hostel",
     "ai_lab": "AI_Lab",
@@ -46,6 +54,8 @@ REQUEST_TYPE_BY_CHOICE = {
 
 
 def normalize_location(value: Optional[str]) -> Optional[str]:
+    # Normalize a location string to the canonical campus node name.
+    # Returns None when the input is empty.
     if not value:
         return None
     key = value.strip().lower().replace(" ", "_")
@@ -53,6 +63,8 @@ def normalize_location(value: Optional[str]) -> Optional[str]:
 
 
 def normalize_category(value: Optional[str]) -> Optional[str]:
+    # Normalize a category string to the standard category label.
+    # Returns None when the input is empty.
     if not value:
         return None
     key = value.strip().lower()
@@ -60,29 +72,51 @@ def normalize_category(value: Optional[str]) -> Optional[str]:
 
 
 def normalize_request_type(value: Optional[str]) -> str:
+    # Normalize request type strings to the official request_type values.
+    # Returns an empty string for missing input to trigger validation errors.
     if not value:
         return ""
     key = value.strip().lower().replace(" ", "_")
     return REQUEST_TYPE_MAP.get(key, value.strip())
 
 
-def parse_int(value: Optional[object]) -> Optional[int]:
+def parse_int(value: Optional[object], field_name: str) -> Optional[int]:
+    # Convert a value to int or raise a clear error for invalid input.
+    # Empty strings return None to support optional numeric fields.
     if value is None:
         return None
     if isinstance(value, int):
         return value
-    if isinstance(value, str) and value.strip() != "":
-        return int(value)
+    if isinstance(value, str):
+        if value.strip() == "":
+            return None
+        try:
+            return int(value)
+        except ValueError as exc:
+            raise ValueError(f"{field_name} must be an integer") from exc
+    raise ValueError(f"{field_name} must be an integer")
     return None
 
 
 def validate_location(field_name: str, value: Optional[str]):
+    # Ensure a location value exists in the known campus map.
+    # Raises a ValueError to block invalid nodes.
     if value and value not in KNOWN_LOCATIONS:
         allowed = ", ".join(sorted(KNOWN_LOCATIONS))
         raise ValueError(f"{field_name} must be one of: {allowed}")
 
 
+def validate_category(value: Optional[str]):
+    # Validate category against the allowed category list.
+    # Rejects unknown categories to enforce strict input.
+    if value and value not in ALLOWED_CATEGORIES:
+        allowed = ", ".join(sorted(ALLOWED_CATEGORIES))
+        raise ValueError(f"category must be one of: {allowed}")
+
+
 def validate_slot(value: Optional[int]):
+    # Validate slot selections against the allowed range.
+    # Raises a ValueError for out-of-range values.
     if value is None:
         return
     if value not in {1, 2, 3, 4}:
@@ -90,6 +124,8 @@ def validate_slot(value: Optional[int]):
 
 
 def validate_scale(field_name: str, value: Optional[int]):
+    # Validate numeric scales like severity or crowd level.
+    # Raises a ValueError if the value is outside 1-10.
     if value is None:
         return
     if value < 1 or value > 10:
@@ -97,6 +133,8 @@ def validate_scale(field_name: str, value: Optional[int]):
 
 
 def preprocess_request(raw: dict):
+    # Normalize, validate, and build a standard Request with module inputs.
+    # Returns the Request object and module-specific prepared data.
     data = dict(raw)
     route_requested = bool(data.pop("route_requested", False))
 
@@ -117,13 +155,14 @@ def preprocess_request(raw: dict):
     if data.get("eligibility_claim") is None:
         data["eligibility_claim"] = True
 
-    data["preferred_slot"] = parse_int(data.get("preferred_slot"))
-    data["severity"] = parse_int(data.get("severity"))
-    data["time_sensitivity"] = parse_int(data.get("time_sensitivity"))
-    data["crowd_level"] = parse_int(data.get("crowd_level"))
+    data["preferred_slot"] = parse_int(data.get("preferred_slot"), "preferred_slot")
+    data["severity"] = parse_int(data.get("severity"), "severity")
+    data["time_sensitivity"] = parse_int(data.get("time_sensitivity"), "time_sensitivity")
+    data["crowd_level"] = parse_int(data.get("crowd_level"), "crowd_level")
 
     validate_location("current_location", data.get("current_location"))
     validate_location("destination", data.get("destination"))
+    validate_category(data.get("category"))
     validate_slot(data.get("preferred_slot"))
     validate_scale("severity", data.get("severity"))
     validate_scale("time_sensitivity", data.get("time_sensitivity"))
