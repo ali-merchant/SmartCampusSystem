@@ -11,8 +11,10 @@ def main():
     if router_output:
         print("Router output:")
         pprint(router_output, width=80, sort_dicts=False)
+        print()
     print("Final response:")
     pprint(response, width=80, sort_dicts=False)
+    print()
 
 
 if __name__ == "__main__":
